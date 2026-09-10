@@ -1,0 +1,13 @@
+{
+  "name": "sidenote-pdf-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "サイドノート作成ツール ウェブ用Markdown作成版：本文とサイドノートをMkDocs・Docsify等の静的サイト用Markdownとして書き出すツール（ブラウザ完結・Cloudflare Pages）",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  }
+}

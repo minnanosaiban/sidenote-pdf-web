@@ -592,40 +592,28 @@ body.print-active .print-pdf-page .print-aside { position: absolute; left: 100%;
 .fmt-btn:disabled { background: #f5f6f8; color: #b7bac2; border-color: #eee; cursor: not-allowed; }
 /* 選択中／適用中の状態は色を反転させて示す（.btn-primaryと同じ黒地・白文字）。 */
 .fmt-btn.active { background: var(--tx-text); color: #fff; border-color: var(--tx-text); }
-.fmt-btn-wide { width: auto; padding: 0 10px; }
-/* 配置／インデント／ぶら下げ／スタイルは、ラベルの字数（「左」1字〜「本文」2字）に関わらず
-   全角2文字分の幅で揃える（列内でボタンの大きさがバラつかないようにするため）。 */
+/* スタイル（本文／H1〜H3）は、ラベルの字数に関わらず全角2文字分の幅で揃える。 */
 .fmt-btn-2ch { min-width: 40px; }
 .fmt-btn-bold { font-weight: 700; }
 .fmt-btn-underline { text-decoration: underline; }
-.fmt-label { display: inline-block; min-width: 34px; font-size: 12.5px; color: var(--tx-text); text-align: center; }
-.fmt-btn-kenten { letter-spacing: -1px; }   /* 「傍点」2文字がボタン内でやや間延びして見えるため少し詰める */
 
-/* 傍点（強調の圏点）。execCommandに対応が無い書式のため独自のspan(.kenten)に持たせ、
-   画面(#doc)・印刷(#printDoc)の両方に同じルールを当てる（印刷側の複製はbuildPrintNode参照）。
-   横書きなので文字の上に付ける（over）。プレフィックス無しのtext-emphasis-*はChromeで対応済みだが、
-   -webkit-プレフィックス版も念のため一緒に指定しておく。 */
+/* 傍点（強調の圏点）。このツールでは付けられないが、書面レイアウト版で作った.jsonを開いた時に
+   同じ見た目で表示・書き出しできるようルールだけ残す（印刷側の複製はbuildPrintNode参照）。 */
 .kenten {
   -webkit-text-emphasis-style: filled dot; -webkit-text-emphasis-position: over right;
   text-emphasis-style: filled dot; text-emphasis-position: over right;
 }
 
-/* ── 「項番設定」パネル（見出しH1〜H3の見た目／項番の型ごとのインデント・ぶら下げ） ──
-   行に入力欄・セレクトが並ぶため、他のdropdown-panel（280px）より広くする。 */
+/* ── 「書き出し」パネル ──
+   形式の選択・保存先のボタンが並ぶため、他のdropdown-panel（280px）より広くする。 */
 .dropdown-panel-wide { width: 420px; max-height: 74vh; overflow-y: auto; }
 .panel-heading { font-size: 12.5px; font-weight: 700; color: var(--tx-text); margin-bottom: 10px; }
 /* 罫線ではなく余白だけでセクションを分ける（.settings-toggleと同じ考え方）。 */
 .panel-heading-2nd { margin-top: 18px; }
-.style-set-row, .num-set-row { flex-wrap: wrap; }
-.row-tag { min-width: 34px; font-weight: 700; color: var(--tx-text); }
 .row-field { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--tx-text); }
-.row-field input[type="number"] {
-  width: 52px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--tx-border); font-size: 12.5px; font-family: inherit;
-}
 .row-field select {
   padding: 3px 4px; border-radius: 6px; border: 1px solid var(--tx-border); font-size: 12.5px; font-family: inherit; background: #fff;
 }
-.row-check { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--tx-text); }
 .panel-apply-btn {
   display: block; width: 100%; height: 32px; margin-top: 14px; border-radius: var(--tx-radius-btn);
   border: 1px solid var(--tx-text); background: var(--tx-text); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;

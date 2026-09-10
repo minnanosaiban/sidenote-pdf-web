@@ -37,36 +37,12 @@ const nameBlackInput = document.getElementById("nameBlack");
 const nameBlueInput = document.getElementById("nameBlue");
 const showNamesToggle = document.getElementById("showNamesToggle");
 const formatToolbarEl = document.getElementById("formatToolbar");
-const alignBtns = Array.from(formatToolbarEl.querySelectorAll("[data-align]"));
-const indentDecBtn = document.getElementById("indentDecBtn");
-const indentIncBtn = document.getElementById("indentIncBtn");
-const hangingDecBtn = document.getElementById("hangingDecBtn");
-const hangingIncBtn = document.getElementById("hangingIncBtn");
-const hangingLabel = document.getElementById("hangingLabel");
 const boldBtn = document.getElementById("boldBtn");
 const underlineBtn = document.getElementById("underlineBtn");
-const kentenBtn = document.getElementById("kentenBtn");
 const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
 const docStackEl = document.getElementById("docStack");
 const docLabelEl = document.getElementById("docLabel");
 const pdfViewerEl = document.getElementById("pdfViewer");
-const numberingSettingsBtn = document.getElementById("numberingSettingsBtn");
-const numberingPanel = document.getElementById("numberingPanel");
-const applyNumberingBtn = document.getElementById("applyNumberingBtn");
-// 見出し（H1〜H3）の見た目設定。文字サイズ(pt)は空欄可（本文と同じ＝上書きしない）、太字はON/OFFのみ。
-const styleSettingInputs = {
-  h1: { size: document.getElementById("h1SizeInput"), bold: document.getElementById("h1BoldToggle") },
-  h2: { size: document.getElementById("h2SizeInput"), bold: document.getElementById("h2BoldToggle") },
-  h3: { size: document.getElementById("h3SizeInput"), bold: document.getElementById("h3BoldToggle") },
-};
-// 項番（行頭の型）ごとのインデント・ぶら下げ設定。
-const numberingSettingInputs = {
-  dai:    { indent: document.getElementById("numDaiIndent"),    hanging: document.getElementById("numDaiHanging") },
-  arabic: { indent: document.getElementById("numArabicIndent"), hanging: document.getElementById("numArabicHanging") },
-  paren:  { indent: document.getElementById("numParenIndent"),  hanging: document.getElementById("numParenHanging") },
-  kana:   { indent: document.getElementById("numKanaIndent"),   hanging: document.getElementById("numKanaHanging") },
-};
-
 let anchorIdSeq = 1;
 let replyIdSeq = 1;
 let imageIdSeq = 1;
@@ -107,15 +83,13 @@ let showAuthorLabel = false;
 // data-style）で持たせ、画面・印刷（PDF化）の両方がこの属性から表示用のスタイルを組み立てる
 // （値そのものは属性が正、スタイルは都度の計算結果というのが唯一の情報源になる）。
 const INDENT_STEP_EM = 1;
-const INDENT_LEVEL_MAX = 6;
 // ぶら下げは1〜3文字幅から選べる（0＝なし）。1文字＝1em（本文の37字組版と同じ「全角1文字≒1em」の前提）。
 const HANGING_CHAR_EM = 1;
-const HANGING_MAX = 3;
 // スタイルは「本文」＋見出し3段階（H1〜H3）の離散的な4択（かつての70%〜150%の連続ステッパー式
 // 文字サイズは廃止）。data-styleが無い＝本文（フォントサイズ・太さともに素のまま）。
-// 各見出しの実際の見た目（文字サイズpt・太字）は「項番設定」パネルで文書ごとに変えられる設定
-// （paraStyleSettings、下のDEFAULT_PARA_STYLE_SETTINGSが初期値）にした。文字サイズは印刷（PDF化）
-// との一致を優先してpt単位で持つ（画面・印刷どちらもCSSのpt単位がそのまま使える）。
+// 各見出しの見た目（文字サイズpt・太字）はDEFAULT_PARA_STYLE_SETTINGS固定（このツールは
+// 書き出したMarkdown側で##〜####の見出しになるので、画面上の見え方を設定で変える必要は無い）。
+// 文字サイズは印刷（PDF化）との一致を優先してpt単位で持つ。
 // fontSizePtがnull＝本文と同じ文字サイズのまま太字だけ変える、という指定にも対応する。
 const DEFAULT_PARA_STYLE_SETTINGS = {
   h1: { fontSizePt: 16, bold: false },
@@ -123,29 +97,6 @@ const DEFAULT_PARA_STYLE_SETTINGS = {
   h3: { fontSizePt: null, bold: true },
 };
 let paraStyleSettings = JSON.parse(JSON.stringify(DEFAULT_PARA_STYLE_SETTINGS));
-
-// ---- 項番（行頭の型）の自動判定 ----
-// 「第１」「１、」「⑴」「ア、」のような行頭の型ごとに、インデント・ぶら下げをまとめて設定できる
-// （numberingSettings、下のDEFAULT_NUMBERING_SETTINGSが初期値）。「項番を一括適用」ボタン
-// （applyNumbering）を押すと、文書内の全段落を先頭のテキストで判定し、一致した型の設定を書き込む。
-// 本文中に偶然現れる数字・カタカナ1文字を拾わないよう、「第」に続く数字（dai型）以外は直後に
-// 区切り文字（空白・句読点・丸括弧閉じ）を要求しているが、完全な誤検出防止はできないため、
-// applyNumbering側で「既に手動でインデント・ぶら下げを変えた段落は対象外」にして被害を抑えている。
-const NUMBERING_TYPES = ["dai", "arabic", "paren", "kana"];
-const NUMBERING_TYPE_LABELS = { dai: "第１型", arabic: "１型", paren: "⑴型", kana: "ア型" };
-const NUMBERING_PATTERNS = {
-  dai:    /^第[0-9０-９一二三四五六七八九十百千]+/,
-  arabic: /^[0-9０-９]+[\s　、，,．.）)]/,
-  paren:  /^([⑴-⒇]|[（(][0-9０-９]+[）)])/,
-  kana:   /^[ア-ン][\s　、，,．.）)]/,
-};
-const DEFAULT_NUMBERING_SETTINGS = {
-  dai:    { indentLevel: 0, hanging: 1 },
-  arabic: { indentLevel: 1, hanging: 1 },
-  paren:  { indentLevel: 2, hanging: 1 },
-  kana:   { indentLevel: 3, hanging: 1 },
-};
-let numberingSettings = JSON.parse(JSON.stringify(DEFAULT_NUMBERING_SETTINGS));
 
 // .jsonから読み込んだ設定を既定値へマージする（旧ファイル・欠損・改ざんされた値でも壊れないように）。
 function mergeParaStyleSettings(loaded) {
@@ -156,18 +107,6 @@ function mergeParaStyleSettings(loaded) {
       if (!s || typeof s !== "object") return;
       merged[key].fontSizePt = Number.isFinite(s.fontSizePt) ? s.fontSizePt : null;
       merged[key].bold = !!s.bold;
-    });
-  }
-  return merged;
-}
-function mergeNumberingSettings(loaded) {
-  const merged = JSON.parse(JSON.stringify(DEFAULT_NUMBERING_SETTINGS));
-  if (loaded && typeof loaded === "object") {
-    NUMBERING_TYPES.forEach((type) => {
-      const r = loaded[type];
-      if (!r || typeof r !== "object") return;
-      if (Number.isFinite(r.indentLevel)) merged[type].indentLevel = Math.max(0, Math.min(INDENT_LEVEL_MAX, r.indentLevel));
-      if (Number.isFinite(r.hanging)) merged[type].hanging = Math.max(0, Math.min(HANGING_MAX, r.hanging));
     });
   }
   return merged;
@@ -288,10 +227,7 @@ function importMarkdownFile(file) {
       anchorIdSeq = 1;
       replyIdSeq = 1;
       imageIdSeq = 1;
-      numberingSettings = JSON.parse(JSON.stringify(DEFAULT_NUMBERING_SETTINGS));
       paraStyleSettings = JSON.parse(JSON.stringify(DEFAULT_PARA_STYLE_SETTINGS));
-      refreshNumberingSettingInputs();
-      refreshStyleSettingInputs();
 
       doc.innerHTML = blocks.map((html) => `<div class="para">${html || "<br>"}</div>`).join("");
 
@@ -415,12 +351,17 @@ function buildWebParaOutput(paraEl) {
   const hashes = HEADING_HASHES[paraEl.dataset.style];
   if (hashes) return [`${hashes} ${text}`, ...notes];
 
+  // 素のMarkdown段落で出す（このツールは配置・インデント・ぶら下げを持たないため、
+  // 生HTMLの<p>で包む必要が無い）。ただし書面レイアウト版で作った.jsonを開いた場合は
+  // data属性が残っていることがあるので、その時だけ<p>＋インラインstyleで体裁を保つ。
   const indentLevel = Number(paraEl.dataset.indentLevel || 0);
   const hanging = Number(paraEl.dataset.hanging || 0);
+  const align = paraEl.dataset.align;
+  if (!indentLevel && !hanging && !align) return [text, ...notes];
+
   const classes = ["sn-p"];
-  if (paraEl.dataset.align === "center") classes.push("sn-center");
-  else if (paraEl.dataset.align === "right") classes.push("sn-right");
-  // 画面（applyParaStyles）と同じ計算：padding-left＝インデント＋ぶら下げ、text-indent＝−ぶら下げ。
+  if (align === "center") classes.push("sn-center");
+  else if (align === "right") classes.push("sn-right");
   const style = (indentLevel || hanging)
     ? ` style="padding-left:${indentLevel + hanging}em;text-indent:-${hanging}em"`
     : "";
@@ -627,10 +568,9 @@ function serializeProject() {
     anchorIdSeq,
     replyIdSeq,
     colorNames: { ...colorNames },   // 黒・青の名前もファイルに残す（開いた人が同じ表示で見られるように）
-    // 「項番設定」パネルの内容（見出しH1〜H3の見た目、項番の型ごとのインデント・ぶら下げ）も
-    // 文書ごとの設定としてファイルに残す（v4で追加。無い旧ファイルはmergeXxxSettings側で既定値になる）。
+    // 見出しH1〜H3の見た目も文書ごとの設定としてファイルに残す（書面レイアウト版と.jsonを
+    // やり取りできるように形は揃えておく。無い旧ファイルはmergeParaStyleSettings側で既定値）。
     paraStyleSettings: JSON.parse(JSON.stringify(paraStyleSettings)),
-    numberingSettings: JSON.parse(JSON.stringify(numberingSettings)),
   };
   if (currentMode === "pdf") {
     // 元PDFをdata URLのまま内包する（画像を.jsonに内包しているのと同じ考え方）。
@@ -641,11 +581,8 @@ function serializeProject() {
 
 function applyProjectData(data) {
   if (!data) throw new Error("invalid project data");
-  // 「項番設定」パネルの内容もこのファイルの値で上書きする（モードに関わらず共通、無ければ既定値）。
+  // 見出しの見た目はこのファイルの値で上書きする（モードに関わらず共通、無ければ既定値）。
   paraStyleSettings = mergeParaStyleSettings(data.paraStyleSettings);
-  numberingSettings = mergeNumberingSettings(data.numberingSettings);
-  refreshStyleSettingInputs();
-  refreshNumberingSettingInputs();
   if (data.mode === "pdf") {
     if (typeof data.pdfDataUrl !== "string") throw new Error("invalid pdf project data");
     notesByAnchor.clear();
@@ -999,11 +936,8 @@ resumeDiscardBtn.onclick = () => {
   resetDoc();
   notesByAnchor.clear();
   titleInput.value = "";
-  // 「項番設定」パネルの内容も文書ごとの設定なので、新しい案件では既定値に戻す。
+  // 見出しの見た目も文書ごとの設定なので、新しい案件では既定値に戻す。
   paraStyleSettings = JSON.parse(JSON.stringify(DEFAULT_PARA_STYLE_SETTINGS));
-  numberingSettings = JSON.parse(JSON.stringify(DEFAULT_NUMBERING_SETTINGS));
-  refreshStyleSettingInputs();
-  refreshNumberingSettingInputs();
   renumberAndLayout();
   updatePlaceholder();
   updateFormatToolbarState();
@@ -1116,97 +1050,10 @@ function toggleDropdownPanel(panelEl, btnEl) {
   panelEl.style.left = `${window.scrollX + rect.left}px`;
 }
 settingsBtn.onclick = () => toggleDropdownPanel(settingsPanel, settingsBtn);
-numberingSettingsBtn.onclick = () => toggleDropdownPanel(numberingPanel, numberingSettingsBtn);
 exportBtn.onclick = () => toggleDropdownPanel(exportPanel, exportBtn);
-
-// ---- 「項番設定」パネル：見出し（H1〜H3）の見た目と、項番の型ごとのインデント・ぶら下げ ----
-// どちらも.jsonに保存する文書ごとの設定（serializeProject/applyProjectData参照）なので、
-// localStorageへの端末既定値は持たない（colorNames等とは違う扱い）。
-// パネルの入力欄をparaStyleSettings/numberingSettingsの現在値に合わせて表示し直す。
-// .json読み込み・「新しい作業」での初期化のたびに呼ぶ。
-function refreshStyleSettingInputs() {
-  Object.keys(styleSettingInputs).forEach((key) => {
-    const s = paraStyleSettings[key];
-    styleSettingInputs[key].size.value = s.fontSizePt != null ? String(s.fontSizePt) : "";
-    styleSettingInputs[key].bold.checked = !!s.bold;
-  });
-}
-function refreshNumberingSettingInputs() {
-  NUMBERING_TYPES.forEach((type) => {
-    numberingSettingInputs[type].indent.value = String(numberingSettings[type].indentLevel);
-    numberingSettingInputs[type].hanging.value = String(numberingSettings[type].hanging);
-  });
-}
-// 見出しの文字サイズ・太字を変えたら、既にH1〜H3を付けている段落全部に即反映する
-// （data属性ではなくparaStyleSettings側が変わるため、単発のapplyParaStyles(paras)では拾えない）。
-function reapplyAllParaStyles() {
-  applyParaStyles(Array.from(doc.querySelectorAll(".para:not(.para-image)")));
-}
-Object.keys(styleSettingInputs).forEach((key) => {
-  styleSettingInputs[key].size.oninput = () => {
-    const raw = styleSettingInputs[key].size.value.trim();
-    paraStyleSettings[key].fontSizePt = raw === "" ? null : Number(raw);
-    reapplyAllParaStyles();
-    autoSaveDebounced();
-  };
-  styleSettingInputs[key].bold.onchange = () => {
-    paraStyleSettings[key].bold = styleSettingInputs[key].bold.checked;
-    reapplyAllParaStyles();
-    autoSaveDebounced();
-  };
-});
-NUMBERING_TYPES.forEach((type) => {
-  numberingSettingInputs[type].indent.onchange = () => {
-    numberingSettings[type].indentLevel = Number(numberingSettingInputs[type].indent.value) || 0;
-    autoSaveDebounced();
-  };
-  numberingSettingInputs[type].hanging.onchange = () => {
-    numberingSettings[type].hanging = Number(numberingSettingInputs[type].hanging.value) || 0;
-    autoSaveDebounced();
-  };
-});
-refreshStyleSettingInputs();
-refreshNumberingSettingInputs();
-
-// 段落の行頭テキストが項番の型（第１型／１型／⑴型／ア型）のどれかに一致するかを判定する。
-// マッチしなければnull。textContentは配下のspan（傍点・note-anchor等）の入れ子に関わらず
-// フラットな文字列を返すので、DOM構造に関わらずこの判定が使える。
-function detectNumberingType(paraEl) {
-  const text = (paraEl.textContent || "").trimStart();
-  for (const type of NUMBERING_TYPES) {
-    if (NUMBERING_PATTERNS[type].test(text)) return type;
-  }
-  return null;
-}
-
-// 「項番を一括適用」：文書内の全段落（画像を除く）を先頭から判定し、一致した型の設定
-// （インデント・ぶら下げ）を書き込む。既にインデント・ぶら下げを持つ段落のうち、それが
-// このボタン自身の適用でついたもの（data-numbered）ではない＝手動で書式を変えた段落は
-// 対象から外して保護する（インデント・ぶら下げのボタンを直接押すとdata-numberedは外れる）。
-function applyNumbering() {
-  const paras = Array.from(doc.querySelectorAll(".para:not(.para-image)"));
-  let applied = 0, skipped = 0;
-  paras.forEach((p) => {
-    const type = detectNumberingType(p);
-    if (!type) return;
-    const hasManualFormat = (p.dataset.indentLevel || p.dataset.hanging) && !p.dataset.numbered;
-    if (hasManualFormat) { skipped++; return; }
-    const rule = numberingSettings[type];
-    if (rule.indentLevel > 0) p.dataset.indentLevel = String(rule.indentLevel); else delete p.dataset.indentLevel;
-    if (rule.hanging > 0) p.dataset.hanging = String(rule.hanging); else delete p.dataset.hanging;
-    p.dataset.numbered = type;
-    applied++;
-  });
-  applyParaStyles(paras);
-  updateFormatToolbarState();
-  autoSaveDebounced();
-  setStatus(`項番を適用しました（${applied}段落に適用／手動書式のため${skipped}段落をスキップ）`);
-}
-applyNumberingBtn.onclick = applyNumbering;
 
 function openPopover(rect) {
   settingsPanel.hidden = true;
-  numberingPanel.hidden = true;
   popoverInput.value = "";
   popoverEl.hidden = false;
   updateColorPickerSelection();
@@ -1649,52 +1496,11 @@ function applyParaStyles(paras) {
 // （準備書面等の番号付き項目を続けて書く時、行ごとに書式を付け直さずに済むようにするため）。
 // 太字・下線は文字への書式なので対象外（新しい行の頭は素の状態から始まる）。
 function inheritParaFormat(fromPara, toPara) {
-  ["indentLevel", "hanging", "align", "style"].forEach((key) => {
+  ["style"].forEach((key) => {
     if (fromPara.dataset[key] !== undefined) toPara.dataset[key] = fromPara.dataset[key];
   });
   applyParaStyles([toPara]);
 }
-
-function applyAlign(align) {
-  const paras = getTargetParas();
-  if (!paras.length) return;
-  paras.forEach((p) => { if (align === "left") delete p.dataset.align; else p.dataset.align = align; });
-  applyParaStyles(paras);
-  updateFormatToolbarState();
-  autoSaveDebounced();
-}
-alignBtns.forEach((btn) => { btn.onclick = () => applyAlign(btn.dataset.align); });
-
-function applyIndentStep(delta) {
-  const paras = getTargetParas();
-  if (!paras.length) return;
-  paras.forEach((p) => {
-    const level = Math.max(0, Math.min(INDENT_LEVEL_MAX, Number(p.dataset.indentLevel || 0) + delta));
-    if (level === 0) delete p.dataset.indentLevel; else p.dataset.indentLevel = String(level);
-    delete p.dataset.numbered;   // 手動で変えた段落は「項番を一括適用」の対象から外して保護する
-  });
-  applyParaStyles(paras);
-  updateFormatToolbarState();
-  autoSaveDebounced();
-}
-indentDecBtn.onclick = () => applyIndentStep(-1);
-indentIncBtn.onclick = () => applyIndentStep(1);
-
-// ぶら下げは0（なし）〜3文字の幅から選ぶ（インデントと同じ−／＋のステッパー式）。
-function applyHangingStep(delta) {
-  const paras = getTargetParas();
-  if (!paras.length) return;
-  paras.forEach((p) => {
-    const chars = Math.max(0, Math.min(HANGING_MAX, Number(p.dataset.hanging || 0) + delta));
-    if (chars === 0) delete p.dataset.hanging; else p.dataset.hanging = String(chars);
-    delete p.dataset.numbered;   // 手動で変えた段落は「項番を一括適用」の対象から外して保護する
-  });
-  applyParaStyles(paras);
-  updateFormatToolbarState();
-  autoSaveDebounced();
-}
-hangingDecBtn.onclick = () => applyHangingStep(-1);
-hangingIncBtn.onclick = () => applyHangingStep(1);
 
 // スタイルは「本文」（data-style無し）とH1〜H3の排他選択（配置と同じ考え方）。
 function applyStyle(styleKey) {
@@ -1722,73 +1528,17 @@ function applyInlineFormat(cmd) {
 boldBtn.onclick = () => applyInlineFormat("bold");
 underlineBtn.onclick = () => applyInlineFormat("underline");
 
-// 傍点は太字・下線と違いブラウザ標準のexecCommandが無いため、note-anchor（範囲選択→ロック）と
-// 同じ考え方の自前実装にする：選択範囲を<span class="kenten">で囲む（execCommand("insertHTML")
-// 経由でCtrl+Zのundo対象にする）。既に選択範囲がまるごと1つの.kentenと一致する場合は解除する
-// （removeNoteFromAnchor()の「注釈を外して原文を書き戻す」と同じ手順）。
-// 太字・下線と違い「以後の入力に適用」は持たない（execCommandの標準機能ではないため）ので、
-// 範囲選択が無い（カーソルだけの）場合は何もしない。
-// 制約：選択範囲が既存の.kentenの一部だけにまたがる場合（完全一致しない部分的な重なり）は
-// 解除ではなく二重に囲む形になる（頻度の低いケースとして許容する）。
-function toggleKenten() {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
-  const range = sel.getRangeAt(0);
-  if (!doc.contains(range.commonAncestorContainer)) return;
-  if (rangeOverlapsLockedAnchor(range)) return;
-
-  const container = range.commonAncestorContainer;
-  const containerEl = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
-  const existingKenten = containerEl ? containerEl.closest(".kenten") : null;
-
-  if (existingKenten && doc.contains(existingKenten) && existingKenten.textContent === range.toString()) {
-    // .kentenは（note-anchorと違い）contenteditable="false"の非編集アイランドではない普通のspanなので、
-    // removeNoteFromAnchor()と同じ「selectNode()して execCommand("insertText") 」パターンは使えない
-    // （実機で確認：execCommandはtrueを返すのにDOMは変化しないという罠がある。おそらく編集可能な
-    // 要素をまるごと選択した状態はinsertTextが想定するテキスト位置の選択と解釈が違うため）。
-    // 代わりに execCommand("delete") で選択中の要素を確実に削除してから、その後の
-    // 折りたたまれたカーソル位置へ execCommand("insertText") でプレーンテキストを差し戻す
-    // （2段階に分けてもどちらもexecCommand経由なのでCtrl+Zのundo対象のまま）。
-    const text = existingKenten.textContent;
-    const r = document.createRange();
-    r.selectNode(existingKenten);
-    sel.removeAllRanges();
-    sel.addRange(r);
-    const deleted = document.execCommand && document.execCommand("delete", false);
-    const replaced = deleted && document.execCommand("insertText", false, text);
-    if (!replaced) existingKenten.replaceWith(document.createTextNode(text));
-  } else {
-    const html = `<span class="kenten">${escapeHtml(range.toString())}</span>`;
-    document.execCommand("insertHTML", false, html);
-  }
-  updateFormatToolbarState();
-  autoSaveDebounced();
-}
-kentenBtn.onclick = toggleKenten;
-
 // ツールバーのボタンをクリックしても#docのフォーカス・選択範囲を失わないようにする
 // （失うと、どの段落・どの文字範囲に適用すべきか分からなくなるため。定番のmousedown+preventDefault）。
 formatToolbarEl.addEventListener("mousedown", (e) => {
   if (e.target.closest("button")) e.preventDefault();
 });
 
-// 現在のカーソル位置（または選択）に応じて、ツールバーの状態（選択中の配置・ぶら下げ・スタイルの
-// 強調表示、インデントの上下限での無効化、太字・下線の強調表示）を更新する。
+// 現在のカーソル位置（または選択）に応じて、ツールバーの状態（選択中のスタイルの強調表示、
+// 太字・下線の強調表示）を更新する。
 function updateFormatToolbarState() {
   const paras = getTargetParas();
   const p = paras[0] || null;
-
-  const align = p ? (p.dataset.align || "left") : "left";
-  alignBtns.forEach((btn) => btn.classList.toggle("active", !!p && btn.dataset.align === align));
-
-  const hangingChars = p ? Number(p.dataset.hanging || 0) : 0;
-  hangingLabel.textContent = hangingChars > 0 ? `${hangingChars}字` : "オフ";
-  hangingDecBtn.disabled = !p || hangingChars <= 0;
-  hangingIncBtn.disabled = !p || hangingChars >= HANGING_MAX;
-
-  const indentLevel = p ? Number(p.dataset.indentLevel || 0) : 0;
-  indentDecBtn.disabled = !p || indentLevel <= 0;
-  indentIncBtn.disabled = !p || indentLevel >= INDENT_LEVEL_MAX;
 
   const styleKey = p ? (p.dataset.style || "") : "";
   styleBtns.forEach((btn) => btn.classList.toggle("active", !!p && (btn.dataset.style || "") === styleKey));
@@ -1800,12 +1550,6 @@ function updateFormatToolbarState() {
   } catch (err) { /* 選択が#docの外にある等、状態取得できない場合は非アクティブ扱い */ }
   boldBtn.classList.toggle("active", boldActive);
   underlineBtn.classList.toggle("active", underlineActive);
-
-  // 傍点にはqueryCommandStateの対応が無いため、選択位置が.kentenの中かどうかを自前で見る。
-  const sel2 = window.getSelection();
-  const anchorNode = sel2 && sel2.rangeCount ? sel2.anchorNode : null;
-  const anchorEl = anchorNode && (anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement);
-  kentenBtn.classList.toggle("active", !!(anchorEl && doc.contains(anchorEl) && anchorEl.closest(".kenten")));
 }
 document.addEventListener("selectionchange", () => {
   const sel = window.getSelection();

@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="本文とサイドノートを、MkDocs・Docsify等の静的サイトジェネレーター用のMarkdownとして書き出せるツール">
 <meta name="twitter:image" content="https://sidenote-pdf-web.pages.dev/og-image-large.png">
 <!-- ?v=NUM はキャッシュ対策。style.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -119,7 +119,6 @@
 <div class="toolbar-sticky">
 <div class="toolbar">
   <button id="settingsBtn" type="button" class="btn-outline">設定</button>
-  <button id="numberingSettingsBtn" type="button" class="btn-outline" title="見出し（H1〜H3）の見た目と、項番（第１／１／⑴／ア）ごとのインデント・ぶら下げを設定します">項番設定</button>
   <button id="resumeDiscard" type="button" class="btn-outline">新しい作業</button>
   <button id="resumeApply" type="button" class="btn-outline" disabled>続きから再開</button>
   <label class="filebtn2 btn-outline" title="保存した.jsonファイル、PDFファイル、またはAIが書いたMarkdown(.md)ファイルを開く">
@@ -145,41 +144,15 @@
   </button>
 </div>
 
-<!-- 本文（左カラム）の書式ツールバー。配置・インデント・ぶら下げ・スタイルはカーソルのある段落
-     （複数段落にまたがる選択時はその全段落）へ、太字・下線は選択範囲の文字へ適用する。
+<!-- 本文（左カラム）の書式ツールバー。ウェブ用のMarkdownを作るツールなので、Markdownに素直に
+     対応できる書式だけを持たせる（太字・下線＝選択した文字へ、見出し＝カーソルのある段落へ。
+     書面向けの配置・インデント・ぶら下げ・傍点・項番設定は書面レイアウト版の担当として持たない）。
      ボタンは.toolbar-format側のmousedownでpreventDefaultし、クリックしても#docの
      フォーカス・選択範囲を失わないようにする（失うとどの段落・範囲に適用すべきか分からなくなるため）。 -->
 <div class="toolbar toolbar-format" id="formatToolbar">
-  <span class="fmt-unit">
-    <span class="fmt-group-label">配置</span>
-    <span class="fmt-group">
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="left" title="左揃え">左</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="center" title="中央揃え">中</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="right" title="右揃え">右</button>
-    </span>
-  </span>
-  <span class="sep"></span>
-  <span class="fmt-unit">
-    <span class="fmt-group-label">インデント</span>
-    <span class="fmt-group">
-      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentDecBtn" title="インデントを減らす">−</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentIncBtn" title="インデントを増やす">＋</button>
-    </span>
-  </span>
-  <span class="sep"></span>
-  <span class="fmt-unit">
-    <span class="fmt-group-label">ぶら下げ</span>
-    <span class="fmt-group">
-      <button type="button" class="fmt-btn fmt-btn-2ch" id="hangingDecBtn" title="ぶら下げの幅を減らす">−</button>
-      <span class="fmt-label" id="hangingLabel">オフ</span>
-      <button type="button" class="fmt-btn fmt-btn-2ch" id="hangingIncBtn" title="ぶら下げの幅を増やす（1〜3字。2行目以降だけを字下げします。番号付き項目の折り返しに）">＋</button>
-    </span>
-  </span>
-  <span class="sep"></span>
   <span class="fmt-group">
     <button type="button" class="fmt-btn fmt-btn-bold" id="boldBtn" title="太字（Ctrl+B）">B</button>
     <button type="button" class="fmt-btn fmt-btn-underline" id="underlineBtn" title="下線（Ctrl+U）">U</button>
-    <button type="button" class="fmt-btn fmt-btn-kenten" id="kentenBtn" title="傍点（強調したい範囲を選択してから押してください）">傍点</button>
   </span>
   <span class="sep"></span>
   <span class="fmt-unit">
@@ -195,7 +168,8 @@
 </div>
 
 <div class="title-row">
-  <input id="titleInput" type="text" placeholder="タイトル（例：資料A、〇〇案件メモ）※「sidenote-資料A-20260819-2306.json」と保存されます">
+  <div class="title-label">タイトル</div>
+  <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
 </div>
 <div id="saveStatus"></div>
 
@@ -216,90 +190,6 @@
     <input type="checkbox" id="showNamesToggle">
     サイドノートに名前（自分／共有相手／重要）を表示する
   </label>
-</div>
-
-<!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを
-     設定するパネル。どちらもこの文書の.jsonに保存される（serializeProject/applyProjectData参照）。
-     「項番を一括適用」は文書内の全段落を先頭のテキストで判定し、一致した型の設定をまとめて書き込む
-     （detectNumberingType/applyNumbering参照）。 -->
-<div class="dropdown-panel dropdown-panel-wide" id="numberingPanel" hidden>
-  <div class="panel-heading">見出しスタイル（H1〜H3）</div>
-  <div class="settings-row style-set-row">
-    <span class="row-tag">H1</span>
-    <label class="row-field">文字サイズ<input type="number" id="h1SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
-    <label class="row-check"><input type="checkbox" id="h1BoldToggle">太字</label>
-  </div>
-  <div class="settings-row style-set-row">
-    <span class="row-tag">H2</span>
-    <label class="row-field">文字サイズ<input type="number" id="h2SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
-    <label class="row-check"><input type="checkbox" id="h2BoldToggle">太字</label>
-  </div>
-  <div class="settings-row style-set-row">
-    <span class="row-tag">H3</span>
-    <label class="row-field">文字サイズ<input type="number" id="h3SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
-    <label class="row-check"><input type="checkbox" id="h3BoldToggle">太字</label>
-  </div>
-
-  <div class="panel-heading panel-heading-2nd">項番（行頭の型ごとのインデント・ぶら下げ）</div>
-  <div class="settings-row num-set-row">
-    <span class="row-tag">第１型</span>
-    <label class="row-field">インデント
-      <select id="numDaiIndent">
-        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-      </select>
-    </label>
-    <label class="row-field">ぶら下げ
-      <select id="numDaiHanging">
-        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
-      </select>
-    </label>
-  </div>
-  <div class="settings-row num-set-row">
-    <span class="row-tag">１型</span>
-    <label class="row-field">インデント
-      <select id="numArabicIndent">
-        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-      </select>
-    </label>
-    <label class="row-field">ぶら下げ
-      <select id="numArabicHanging">
-        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
-      </select>
-    </label>
-  </div>
-  <div class="settings-row num-set-row">
-    <span class="row-tag">⑴型</span>
-    <label class="row-field">インデント
-      <select id="numParenIndent">
-        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-      </select>
-    </label>
-    <label class="row-field">ぶら下げ
-      <select id="numParenHanging">
-        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
-      </select>
-    </label>
-  </div>
-  <div class="settings-row num-set-row">
-    <span class="row-tag">ア型</span>
-    <label class="row-field">インデント
-      <select id="numKanaIndent">
-        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-      </select>
-    </label>
-    <label class="row-field">ぶら下げ
-      <select id="numKanaHanging">
-        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
-      </select>
-    </label>
-  </div>
-
-  <button type="button" id="applyNumberingBtn" class="panel-apply-btn">項番を一括適用</button>
-  <p class="panel-hint">段落の先頭が「第１」「１、」「⑴」「ア、」のような型に一致する段落だけ、上の設定でインデント・ぶら下げをまとめて書き込みます。すでにインデント・ぶら下げを手動で変えた段落は対象から外れます（保護されます）。この設定はこの文書の.jsonに保存されます。</p>
 </div>
 
 <!-- 「ウェブ書き出し」パネル。形式（ウェブ用／hotline用）と、CSSを一緒に書き出すかを選ぶ。
@@ -375,6 +265,6 @@
   </div>
 </div>
 
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="本文とサイドノートを、MkDocs・Docsify等の静的サイトジェネレーター用のMarkdownとして書き出せるツール">
 <meta name="twitter:image" content="https://sidenote-pdf-web.pages.dev/og-image-large.png">
 <!-- ?v=NUM はキャッシュ対策。style.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -168,7 +168,7 @@
 </div>
 
 <div class="title-row">
-  <div class="title-label">タイトル</div>
+  <div class="title-label">ファイル名</div>
   <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
 </div>
 <div id="saveStatus"></div>
@@ -216,7 +216,7 @@
     <button type="button" id="exportCopyBtn" class="btn-outline panel-sub-btn">本文をコピー</button>
     <button type="button" id="exportCssCopyBtn" class="btn-outline panel-sub-btn">CSSをコピー</button>
   </div>
-  <p class="panel-hint">サイトのフォルダ（MkDocsなら<code>docs/</code>以下）を選ぶと、「タイトル.md」として直接書き込みます。初回だけフォルダ選択が出て、以後は同じ場所へ上書きします。ページ側では<code>sidenote.css</code>を1回読み込んでください（MkDocsは<code>extra_css</code>、Docsifyは<code>&lt;link rel="stylesheet"&gt;</code>）。画像は書き出しに含まれません。</p>
+  <p class="panel-hint">サイトのフォルダ（MkDocsなら<code>docs/</code>以下）を選ぶと、「ファイル名.md」として直接書き込みます。初回だけフォルダ選択が出て、以後は同じ場所へ上書きします。ページ側では<code>sidenote.css</code>を1回読み込んでください（MkDocsは<code>extra_css</code>、Docsifyは<code>&lt;link rel="stylesheet"&gt;</code>）。画像は書き出しに含まれません。</p>
 </div>
 
 <div class="doc-wrap">
@@ -266,8 +266,8 @@
 </div>
 
 <!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。 -->
-<footer class="app-footer">画面表示は本文15px・1行37字が目安／PDF書き出しは本文10.5pt・1行31字程度（全角1文字≒1em換算）です。</footer>
+<footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

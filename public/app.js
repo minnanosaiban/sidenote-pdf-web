@@ -47,6 +47,10 @@ let anchorIdSeq = 1;
 let replyIdSeq = 1;
 let imageIdSeq = 1;
 
+// 直前に開いたファイルが.md/.markdownだったか。Ctrl+Sの保存先（.json/.md書き出し）の振り分けに使う。
+// .jsonを開く／自動保存を復元する／.pdfを開く／「新しい作業」を始めるとfalseに戻り、Ctrl+Sは.json保存に戻る。
+let openedAsMd = false;
+
 // ---- モード（本文＝打ち込み編集 か PDF＝既存PDFへの注釈 か。sidenote-pdfから移植） ----
 // 「開く」で.pdfを選ぶとpdfモードへ切り替わる（新規ボタンは増やさない方針、loadInput.onchange参照）。
 // notesByAnchor・色・返信スレッドの仕組みは両モード共通。異なるのは「本文をどう表示し、
@@ -241,6 +245,7 @@ function importMarkdownFile(file) {
       renumberAndLayout();
       updatePlaceholder();
       updateFormatToolbarState();
+      openedAsMd = true;   // Ctrl+Sで.md書き出しへ振り分けるためのフラグ
       setStatus(`Markdownを取り込みました：${file.name}（見出し・中央ぞろえ・項番のインデントは手動で適用してください）`);
       autoSaveDebounced();
     } catch (err) {
@@ -840,6 +845,16 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Ctrl+S（Macはcmd+S）はブラウザ標準の「ページを保存」を横取りする。直前に.mdを開いていれば
+// 「書き出し」と同じ動作（runExport、フォルダ選択済みなら同じ場所へ上書き）、それ以外は
+// 従来通り「保存」(.json)。フォーカスがタイトル欄等#docの外にある時も効くよう、document全体で拾う。
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    if (openedAsMd) runExport(false); else saveBtn.click();
+  }
+});
+
 loadInput.onchange = (e) => {
   const file = e.target.files && e.target.files[0];
   loadInput.value = "";   // 同じファイルを続けて開き直せるようにリセット
@@ -847,6 +862,7 @@ loadInput.onchange = (e) => {
 
   // 拡張子で.pdf・.md・.jsonを振り分ける（ボタンは増やさず「開く」1つで全て受け付ける方針）。
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    openedAsMd = false;   // pdfモードでは段落の概念が無く.md書き出しは使えないため、Ctrl+Sは.json保存に戻す
     openPdfFile(file);
     return;
   }
@@ -859,6 +875,7 @@ loadInput.onchange = (e) => {
   reader.onload = async () => {
     try {
       await applyProjectData(JSON.parse(reader.result));
+      openedAsMd = false;   // .jsonを開いた＝以後のCtrl+Sは.json保存に戻す
       setStatus(`読み込みました：${file.name}`);
     } catch (err) {
       console.error(err);
@@ -913,6 +930,7 @@ function checkAutoSaveOnLoad() {
     if (!hasContent) return;
     try {
       await applyProjectData(data);
+      openedAsMd = false;   // 自動保存(.json相当)からの復元＝以後のCtrl+Sは.json保存に戻す
       setStatus("自動保存された内容を復元しました。");
     } catch (err) {
       console.error(err);
@@ -936,6 +954,7 @@ resumeDiscardBtn.onclick = () => {
   resetDoc();
   notesByAnchor.clear();
   titleInput.value = "";
+  openedAsMd = false;
   // 見出しの見た目も文書ごとの設定なので、新しい案件では既定値に戻す。
   paraStyleSettings = JSON.parse(JSON.stringify(DEFAULT_PARA_STYLE_SETTINGS));
   renumberAndLayout();

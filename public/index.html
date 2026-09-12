@@ -174,6 +174,12 @@
 <div id="saveStatus"></div>
 
 <div class="dropdown-panel" id="settingsPanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">設定</span>
+    <button type="button" class="dropdown-close" id="settingsClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
   <div class="settings-row">
     <span class="settings-dot" data-color="black"></span>
     <input id="nameBlack" type="text" maxlength="12" placeholder="自分">
@@ -195,6 +201,12 @@
 <!-- 「ウェブ書き出し」パネル。形式（ウェブ用／hotline用）と、CSSを一緒に書き出すかを選ぶ。
      保存先フォルダはIndexedDBに記憶するので、2回目以降は「書き出す」だけで上書きされる。 -->
 <div class="dropdown-panel dropdown-panel-wide" id="exportPanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">書き出し</span>
+    <button type="button" class="dropdown-close" id="exportClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
   <div class="panel-heading">書き出す形式</div>
   <div class="settings-row">
     <label class="row-field">
@@ -268,6 +280,6 @@
 <!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。 -->
 <footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
